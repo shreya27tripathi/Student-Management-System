@@ -1,0 +1,410 @@
+#program on student management
+#estabilishing connection with sql
+import mysql.connector
+db=mysql.connector.connect( user="root",passwd="tiger")
+cursor = db.cursor()
+def Create_Table():
+    query="SHOW DATABASES"
+    cursor.execute(query)
+    dbs=cursor.fetchall()
+
+    if ('school',) not in dbs:
+        print("true")
+        cursor.execute(query)
+        cursor.execute("CREATE DATABASE SCHOOL")
+        cursor.execute("USE SCHOOL")
+        query = "SHOW TABLES"
+        cursor.execute(query)
+        tables = cursor.fetchall()
+        if "students" not in tables:
+            #print(tables)
+            cursor.execute('''CREATE TABLE STUDENTS 
+                            (ROLL_NO varchar(4) NOT NULL PRIMARY KEY,
+                            NAME varchar(30) NOT NULL,
+                            FATHER_NAME varchar(30) NOT NULL,
+                            MOTHER_NAME varchar(30) NOT NULL,
+                            CONTACT_NO varchar(12) NOT NULL,
+                            EMAIL_ID  varchar(30) NOT NULL,
+                            AADHAR_NO varchar(20) NOT NULL,
+                            CLASS_SEC varchar(10) NOT NULL,
+                            ADDRESS varchar(70) NOT NULL,
+                            HOUSE varchar(10) NOT NULL);''')
+        else:
+            print("TABLE ALREADY EXISTS")
+    else:
+
+        cursor.execute("USE SCHOOL")
+# intoducing two global variables for various modules
+roll_nos = []
+data = []
+
+
+# module to load data from file
+def DataLoad():
+    global data
+    global roll_nos
+    cursor.execute("SELECT ROLL_NO FROM STUDENTS")
+    temp =cursor.fetchall()
+    for i in temp:
+        roll_nos.append(i[0])
+
+    query = "SELECT * FROM STUDENTS"
+    cursor.execute(query)
+    data = list(cursor.fetchall())
+    print(data)
+
+
+# if the file is empty
+def FileEmpty():
+    print("NO DATA FOUND IN THE DATABASE")
+
+    i = input("PRESS ANY KEY TO GO TO MENU")
+    Main()
+
+
+# module to add records in the file
+def AddRecords():
+    global data
+    global roll_nos
+    ch = 'y'
+    while ch in 'yY':
+        while True:
+            roll_no = input("ENTER ROLL_NO(4 character numeric)/PRESS q TO EXIT:-")
+            if roll_no in 'Qq':
+                 return
+
+            if roll_no in roll_nos:
+                print("THAT ROLL_NO ALREADY EXISTS")
+            elif len(roll_no) != 4 or not (roll_no.isdigit()):
+                print('INVALID ROLL_NO')
+            else:
+                break
+        roll_nos.append(roll_no)
+
+        name = input("ENTER YOUR NAME(max 30 characters):")
+        name = name[:30]
+        father_name = input("ENTER YOUR FATHER'S NAME(max 30 characters):")
+        father_name = father_name[:30]
+        mother_name = input("ENTER YOUR MOTHER'S NAME(max 30 characters):")
+        mother_name = mother_name[:30]
+        while True:
+            contact_no = input("ENTER YOUR CONTACT_NO")
+            if len(contact_no) != 10 or contact_no.isdigit()== False:
+                print("INVALID CONTACT NUMBER")
+            else:
+                break
+        email_id = input("ENTER YOUR EMAIL_ID")
+        while True:
+            aadhar_no = input("ENTER YOUR AADHAR_NO")
+            if len(aadhar_no) != 12 or not aadhar_no.isdigit():
+                print("INVALID AADHAR NUMBER NUMBER")
+            else:
+                break
+
+        clss_sec = input("ENTER YOUR STANDARD AND SECTION(eg:12-A):")
+        addr = input("ENTER YOUR ADDRESS(max 70 characters):")
+        addr = addr[0:70]
+        while True:
+            house = input("ENTER YOUR HOUSE(raman/aryabhatta/einstein/newton):")
+            if house.lower() not in ['raman','aryabhatta','einstein','newton']:
+                print("INVALID")
+            else:
+                break
+        rec=(roll_no, name, father_name, mother_name, contact_no, email_id, aadhar_no, clss_sec, addr, house)
+        Rec=('1234', '3', '4', '3', '6789012323', '34', '3', '4', '4', '3')
+        print ("ENTERED DATA:",rec)
+        query="INSERT INTO STUDENTS (roll_no, name, father_name, mother_name, contact_no, email_id, aadhar_no, class_sec, address, house) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"
+        cursor.execute(query,rec)
+        db.commit()
+        data.append(rec)
+
+        ch = input("ADD MORE DATA(y/n)?")
+
+
+    print("PLEASE CHECK THE CHANGES MADE")
+    DisplayAllRecords()
+
+
+# module to delete records from a file
+def DeleteRecords():
+    global data
+    global roll_nos
+
+    if len(data) != 0:
+        while True:
+            print("LIST OF ROLL NUMBERS:", roll_nos)
+            roll = input("ENTER ROLL_NO OF THE RECORD TO BE DELETED/PRESS q TO EXIT-:")
+
+            if roll in 'qQ':
+                return
+
+            if roll in roll_nos:
+                index = roll_nos.index(roll)
+                data.pop(index)
+                roll_nos.pop(index)
+
+                query = "DELETE FROM STUDENTS WHERE ROLL_NO = %s"
+                cursor.execute(query,(roll,))
+                db.commit()
+
+            else :
+                print("THIS ROLL_NO DOES NOT EXIST,PLEASE ENTER A VALID ROLL_NO")
+                DeleteRecords()
+                continue
+            more = input("MORE TO DELETE(y/n)? ")
+            if more in 'nN':
+                break
+
+        print("PLEASE CHECK THE CHANGES MADE")
+        DisplayAllRecords()
+    else:
+        FileEmpty()
+
+
+# module to search for a record in a file
+def Search():
+    global data
+    global roll_nos
+    print("LIST OF ROLL NUMBERS:",roll_nos)
+
+    heading2 = '''ROLL_NO         NAME                            FATHER'S NAME                   MOTHER'S NAME                   CONTACT_NO      EMAIL_ID                        AADHAR_NO               CLASS AND SEC   ADDRESS                                                                 HOUSE'''
+
+    if len(data) != 0:
+        while True:
+
+            roll_no = input("ENTER ROLL_NO OF THE RECORD TO BE SEARCHED/PRESS q to exit-:")
+
+            if roll_no in 'Qq':
+                return
+
+            if roll_no in roll_nos:
+                query="SELECT * FROM STUDENTS WHERE ROLL_NO=%s"
+                cursor.execute(query,(roll_no,))
+                data=cursor.fetchall()
+                print(heading2)
+
+                for rec in data:
+                    gap = "\t"
+                    roll_no = rec[0]
+                    name = rec[1]
+                    father_name = rec[2]
+                    mother_name = rec[3]
+                    contact_no = rec[4]
+                    email_id = rec[5]
+                    aadhar_no = rec[6]
+                    clss_sec = rec[7]
+                    addr = rec[8]
+                    house = rec[9]
+                    rec_ = f'{roll_no:12}{gap}{name:30}{gap}{father_name:30}{gap}{mother_name:30}{gap}{contact_no:10}{gap}{gap}{email_id:30}{gap}{aadhar_no:20}{gap}{clss_sec:13}{gap}{addr:70}{gap}{house:10}'
+                    print(rec_)
+
+                print("=" * 318)
+
+            else:
+                print("INVALID  ROLL_NO")
+                continue
+
+            more = input("MORE TO SEARCH(y/n)?")
+
+            if more in 'nN':
+                break
+    else:
+        FileEmpty()
+
+
+# module to display all records
+def DisplayAllRecords():
+
+
+    heading1 = "=" * 149 + "STUDENT RECORDS" + "=" * 149
+
+    heading2 = '''ROLL_NO         NAME                            FATHER'S NAME                   MOTHER'S NAME                   CONTACT_NO      EMAIL_ID                        AADHAR_NO               CLASS AND SEC   ADDRESS                                                                 HOUSE'''
+
+    print(heading1)
+    print(" " * 382)
+    print(heading2)
+
+    query = "SELECT * FROM STUDENTS"
+    cursor.execute(query)
+    data = cursor.fetchall()
+
+    for rec in data:
+        gap = "\t"
+        roll_no = rec[0]
+        name = rec[1]
+        father_name = rec[2]
+        mother_name = rec[3]
+        contact_no = rec[4]
+        email_id = rec[5]
+        aadhar_no = rec[6]
+        clss_sec = rec[7]
+        addr = rec[8]
+        house = rec[9]
+        rec_ = f'{roll_no:12}{gap}{name:30}{gap}{father_name:30}{gap}{mother_name:30}{gap}{contact_no:10}{gap}{gap}{email_id:30}{gap}{aadhar_no:20}{gap}{clss_sec:13}{gap}{addr:70}{gap}{house:10}'
+        print(rec_)
+
+    print("=" * 318)
+
+# module to modify record within a file
+def Modify():
+    global data
+    global roll_nos
+
+    if len(data) != 0:
+        while True:
+            roll_no = input("ENTER ROLL_NO OF THE RECORD TO BE MODIFIED/PRESS q TO EXIT:-")
+
+            if roll_no in 'Qq':
+                return
+
+            if roll_no in roll_nos:
+                        print("ENTER THE FIELD YOU WISH TO MODIFY")
+                        ch = input('''
+                        1)NAME
+                        2)FATHER'S NAME
+                        3)MOTHER'S NAME
+                        4)CONTACT NUMBER
+                        5)EMAIL ID
+                        6)AADHAAR NUMBER
+                        7)CLASS AND SECTION
+                        8)ADDRESS
+                        9)HOUSE
+                        ENTER CHOICE FROM(1-9)-: ''')
+
+                        if ch == "1":
+                            Name = input("INPUT THE NEW NAME-:")
+                            query="UPDATE STUDENTS SET NAME = %s  WHERE ROLL_NO = %s"
+                            new=(Name,roll_no)
+                            cursor.execute(query,new)
+                            db.commit()
+
+                        elif ch == "2":
+                            Father_Name = input("INPUT THE NEW NAME-:")
+                            query = "UPDATE STUDENTS SET FATHER_NAME = %s WHERE ROLL_NO = %s"
+                            new = (Father_Name,roll_no)
+                            cursor.execute(query, new)
+                            db.commit()
+
+                        elif ch == "3":
+                            Mother_Name = input("INPUT THE NEW NAME-:")
+                            query = "UPDATE STUDENTS SET MOTHER_NAME = %s WHERE ROLL_NO = %s"
+                            new = (Mother_Name, roll_no)
+                            cursor.execute(query, new)
+                            db.commit()
+
+                        elif ch == "4":
+                            Contact_no = input("INPUT THE NEW CONTACT_NUMBER-:")
+                            query = "UPDATE STUDENTS SET CONTACT_NO = %s WHERE ROLL_NO = %s"
+                            new = (Contact_no,roll_no)
+                            cursor.execute(query, new)
+                            db.commit()
+
+                        elif ch == "5":
+                            Email_id = input("INPUT THE NEW EMAIL_ID-:")
+                            query = "UPDATE STUDENTS SET EMAIL_ID = %s WHERE ROLL_NO = %s"
+                            new = (Email_id, roll_no)
+                            cursor.execute(query, new)
+                            db.commit()
+
+                        elif ch == "6":
+                            Aadhar_Number = input("INPUT THE NEW AADHAR_NUMBER-:")
+                            query = "UPDATE STUDENTS SET AADHAR_NO = %s WHERE ROLL_NO = %s"
+                            new = (Aadhar_Number, roll_no)
+                            cursor.execute(query, new)
+                            db.commit()
+
+                        elif ch == "7":
+                            Class_Sec = input("INPUT THE NEW CLASS AND SEC-:")
+                            query = "UPDATE STUDENTS SET CLASS_SEC = %s WHERE ROLL_NO = %s"
+                            new = (Class_Sec, roll_no)
+                            cursor.execute(query, new)
+                            db.commit()
+
+                        elif ch == "8":
+                            Address = input("INPUT THE NEW ADDRESS-:")
+                            query = "UPDATE STUDENTS SET ADDRESS = %s WHERE ROLL_NO=roll_no = %s"
+                            new = (Address, roll_no)
+                            cursor.execute(query, new)
+                            db.commit()
+
+                        elif ch == "9":
+                            House = input("INPUT THE NEW HOUSE-:")
+                            query = "UPDATE STUDENTS SET HOUSE = %s WHERE ROLL_NO = %s"
+                            new = (House, roll_no)
+                            cursor.execute(query, new)
+                            db.commit()
+
+                        else:
+                            print("ENTER CORRECT CHOICE")
+                        print("PLEASE CHECK THE CHANGES MADE")
+                        DisplayAllRecords()
+
+            else:
+                print("INVALID ROLL_NO")
+                continue
+
+            ch = input("MODIFY MORE DATA(y/n)?")
+            if ch in ('nN'):
+                break
+    else:
+        FileEmpty()
+
+#module to exit
+def Exit():
+    print('''
+    THANKYOU FOR USING THIS SOFTWARE
+    IF YOU HAVE ANY SUGGESTIONS/QUERIES REGARDING THIS SOFTWARE-:
+    EMAIL US AT:Scorp@gmail.com
+    OR CONTACT US:983XXXXXXX
+    WE WOULD SURELY CONSIDER/RESOLVE IT IN THE NEXT 24 HOURS :)''')
+    exit()
+
+
+# main module to call all functions
+def Main():
+    while True:
+
+        choice = input('''
+        ===================================================
+              STUDENT RECORD FILE MENU DRIVEN PROGRAM
+        ===================================================
+
+              TO ADD RECORDS IN THE FILE PRESS        1
+              TO DELETE RECORDS FROM THE FILE PRESS   2
+              TO DISPLAY RECORDS OF THE FILE PRESS    3
+              TO MODIFY RECORDS IN THE FILE PRESS     4
+              TO SEARCH RECORDS IN THE FILE PRESS     5
+              TO EXIT PRESS                           6
+              ENTER CHOICE-:  ''')
+
+        if choice == "1":
+            print("THIS IS YOUR ORIGINAL FILE")
+            DisplayAllRecords()
+            AddRecords()
+
+        elif choice == "2":
+            print("THIS IS YOUR ORIGINAL FILE")
+            DisplayAllRecords()
+            DeleteRecords()
+
+        elif choice == "3":
+            print("THIS IS YOUR ORIGINAL FILE")
+            DisplayAllRecords()
+
+        elif choice == "4":
+            print("THIS IS YOUR ORIGINAL FILE")
+            DisplayAllRecords()
+            Modify()
+
+        elif choice == "5":
+            Search()
+
+        elif choice == "6":
+            Exit()
+
+        else:
+            print("ENTER VALID CHOICE")
+
+Create_Table()
+DataLoad()
+Main()
