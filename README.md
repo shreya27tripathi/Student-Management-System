@@ -1,5 +1,5 @@
 # Student-Management-System
-This is my first project developed during my 12th grade using python-SQL connectivity
+This is my first project developed  using python-SQL connectivity
 
 •	This software helps store and manage essential personal details of the students as well as their academic details.
 
